@@ -1,10 +1,15 @@
 import math
 import random
+from abc import ABC
 
 import numpy as np
 
 from GLOBALS import *
 from functions import distance_nodes
+
+
+
+
 
 """
 Full API:
