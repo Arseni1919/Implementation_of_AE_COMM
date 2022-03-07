@@ -36,7 +36,13 @@ class FinalGoal(gym.Env):
                 self.pos_to_positions[(position.x, position.y)] = position
                 pos_id += 1
 
-        chosen = random.sample(list(self.positions.values()), self.n_agents + self.n_goal_tiles + self.n_obstacle_tiles)
+        # create borders in the field
+        for i_pos in list(self.positions.values()):
+            if i_pos.x in [0, self.field_side - 1] or i_pos.y in [0, self.field_side - 1]:
+                i_pos.req = -1
+
+        chosen = list(filter(lambda x: x.req != -1, list(self.positions.values())))
+        chosen = random.sample(chosen, self.n_agents + self.n_goal_tiles + self.n_obstacle_tiles)
 
         # obstacles
         for i_obstacle in range(self.n_obstacle_tiles):
@@ -157,7 +163,7 @@ class FinalGoal(gym.Env):
             self.ax2.clear()
             agent_name = 'agent_0'
             curr_mat = np.rot90(np.round_(self.observation_spaces[agent_name], decimals=2))
-            pprint(curr_mat)
+            # pprint(curr_mat)
             self.ax2.imshow(curr_mat)
             # Loop over data dimensions and create text annotations.
             for i in range(len(curr_mat[0])):

@@ -8,4 +8,5 @@
 - [github | Minimalistic Gridworld Environment (MiniGrid)](https://github.com/maximecb/gym-minigrid)
 - [github | marlgrid](https://github.com/kandouss/marlgrid)
 - [matplotlib | Rectangle](https://matplotlib.org/3.5.1/api/_as_gen/matplotlib.patches.Rectangle.html#matplotlib.patches.Rectangle)
+- [matplotlib | heatmap](https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html)
 - [numpy | rotation of matrix](https://numpy.org/doc/stable/reference/generated/numpy.rot90.html)
