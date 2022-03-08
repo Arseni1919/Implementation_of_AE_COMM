@@ -43,3 +43,4 @@ GRU outputs to the baseline value function.
 - [matplotlib | Rectangle](https://matplotlib.org/3.5.1/api/_as_gen/matplotlib.patches.Rectangle.html#matplotlib.patches.Rectangle)
 - [matplotlib | heatmap](https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html)
 - [numpy | rotation of matrix](https://numpy.org/doc/stable/reference/generated/numpy.rot90.html)
+- [CS231n Convolutional Neural Networks for Visual Recognition](https://cs231n.github.io/)

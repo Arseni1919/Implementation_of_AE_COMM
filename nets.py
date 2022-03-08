@@ -15,7 +15,7 @@ class ImageEncoder(nn.Module):
             nn.ELU(),
             nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=2, padding=1),
             nn.ELU(),
-            nn.AdaptiveAvgPool2d(output_size=3)
+            nn.AdaptiveAvgPool2d(output_size=1)
         )
 
     def forward(self, x):
@@ -41,11 +41,12 @@ class CommunicationAutoencoder(nn.Module):
             nn.Linear(64, 128),
             nn.ReLU()
         )
-        self.output = nn.Linear(128, 10)
+        self.final_output = nn.Linear(128, 10)
 
     def forward(self, x):
         encoder_output = self.encoder(x.float())
-        return encoder_output, self.output(self.decoder(encoder_output))
+        decoder_output = self.final_output(self.decoder(encoder_output))
+        return encoder_output, decoder_output
 
 
 class MessageEncoder(nn.Module):
@@ -62,7 +63,7 @@ class MessageEncoder(nn.Module):
         )
 
     def forward(self, x):
-        x = torch.cat([self.embedding(item) for item in x])
+        x = torch.cat([self.embedding(item) for item in x], 1)
         return self.net(x.float())
 
 
@@ -70,14 +71,15 @@ class PolicyNetwork(nn.Module):
     def __init__(self, n_actions):
         super(PolicyNetwork, self).__init__()
         self.n_actions = n_actions
-        self.net = nn.Sequential(
-            nn.GRU(input_size=(32 + 128), hidden_size=128),
-            nn.ReLU(),
-            nn.Linear(32, self.n_actions),
-        )
+        self.gru = nn.GRU(input_size=(32 + 128), hidden_size=128)
+        self.linear_1 = nn.Linear(128, self.n_actions)
+        self.relu = nn.ReLU()
+        self.hidden_1 = torch.zeros(1, 1, 128)
 
     def forward(self, x):
-        return self.net(x.float())
+        output_gru, self.hidden_1 = self.gru(x, self.hidden_1)
+        output_linear = self.linear_1(self.relu(output_gru))
+        return output_linear
 
 
 

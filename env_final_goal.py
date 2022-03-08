@@ -3,17 +3,18 @@ import random
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 from GLOBALS import *
 
 
 class FinalGoal(gym.Env):
-    def __init__(self):
+    def __init__(self, n_agents=3):
         self.field_side = 15
         self.field = np.ndarray((self.field_side, self.field_side))
         self.n_goal_tiles = 1
         self.n_obstacle_tiles = 25
-        self.n_agents = 3
+        self.n_agents = n_agents
         self.obs_side = 7
         self.n_actions = 5
         self.max_episode = 512
@@ -22,6 +23,8 @@ class FinalGoal(gym.Env):
         self.positions = {}
         self.pos_to_positions = {}
         self.agents = {}
+        self.agents_list = []
+        self.counter = 0
         self.to_render = False
         self.fig, (self.ax, self.ax2) = None, (None, None)
         self.agent_size = self.field_side / 50
@@ -29,6 +32,16 @@ class FinalGoal(gym.Env):
     def reset(self):
         # create field
         pos_id = 0
+
+        # redefine
+        self.positions = {}
+        self.pos_to_positions = {}
+        self.agents = {}
+        self.agents_list = []
+        self.action_spaces = {}
+        self.observation_spaces = {}
+        self.counter = 0
+
         for i_x in range(self.field_side):
             for i_y in range(self.field_side):
                 position = Position(pos_id=pos_id, x=i_x, y=i_y)
@@ -61,6 +74,7 @@ class FinalGoal(gym.Env):
             chosen_pos = chosen.pop()
             agent = Agent(agent_id=i_agent, x=chosen_pos.x, y=chosen_pos.y)
             self.agents[agent.name] = agent
+            self.agents_list.append(agent)
             self.action_spaces[agent.name] = gym.spaces.Discrete(self.n_actions)
 
         # update observations
@@ -71,7 +85,9 @@ class FinalGoal(gym.Env):
 
     def step(self, actions):
         observations, rewards, dones, infos = {}, {}, {}, {}
+        self.counter += 1
         for i_agent_name, i_action in actions.items():
+            # position + reward
             agent = self.agents[i_agent_name]
             new_pos_x, new_pos_y = agent.x, agent.y
             if i_action == 1:  # UP
@@ -89,7 +105,13 @@ class FinalGoal(gym.Env):
                 rewards[i_agent_name] = curr_pos_node.req
             else:
                 rewards[i_agent_name] = -1
+            # dones
+            if self.counter == self.max_episode:
+                dones[i_agent_name] = True
         observations = self.update_observations()
+        # to tensor
+        rewards = {k: torch.tensor(v) for k, v in rewards.items()}
+        dones = {k: torch.tensor(v) for k, v in dones.items()}
         return observations, rewards, dones, infos
 
     def update_observations(self):
@@ -103,10 +125,16 @@ class FinalGoal(gym.Env):
                     if (cell_x, cell_y) in self.pos_to_positions:
                         curr_cell = self.pos_to_positions[(cell_x, cell_y)]
                         self.observation_spaces[agent.name][obs_x][obs_y] = curr_cell.req
-        return copy.deepcopy(self.observation_spaces)
+        # to tensor
+        # return copy.deepcopy(self.observation_spaces)
+        t_observation_spaces = {
+            agent_name: torch.unsqueeze(torch.tensor(obs), 0)
+            for agent_name, obs in self.observation_spaces.items()
+        }
+        return t_observation_spaces
 
     def get_agents_names(self):
-        return list(self.agents.keys())
+        return [agent.name for agent in self.agents_list]
 
     def render(self, mode="human", second_graph_dict=None, alg_name='MAS Simulation'):
         if not self.to_render:
