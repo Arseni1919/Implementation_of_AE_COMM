@@ -5,21 +5,29 @@
 ![](static/overview.png)
 
 ### Model
+
 #### Image Encoder 
+
 The Image Encoder is a convolutional neural network with 4 convolutional layers.
 Each layer has a kernel size of 3, stride of 2, padding of 1, and outputs 32 channels. ELU activation
 is applied to each convolutional layer. A 2D adaptive average pooling is applied over the output from
 convolutional layers. The final output has 32 channels, a height of 3, and a width of 3.
+
 #### Communication Autoencoder 
+
 The Communication Autoencoder takes as input the output from
 the Image Encoder. The encoder is a 3-layer MLP with hidden units [128, 64, 32] and ReLU
 activation. The decoder is a 3-layer MLP with hidden units [32, 64, 128] and ReLU activation. The
 output communication message is a 1D vector of length 10.
+
 #### Message Encoder 
+
 The Message Encoder first projects all input messages using an embedding
 layer of size 32, then concatenates and passes the message embeddings through a 3-layer MLP with
 hidden units [32, 64, 128] and ReLU activation. Dimension of the output message feature is 128.
+
 ####Policy Network 
+
 Each policy network is consisted of a GRU policy with hidden size 128, a linear
 layer mapping GRU outputs to policy logits for the environment action, and a linear layer mapping
 GRU outputs to the baseline value function.
