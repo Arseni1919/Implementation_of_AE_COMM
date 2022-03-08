@@ -5,15 +5,21 @@ from env_final_goal import FinalGoal
 def train():
     for i_episode in range(EPISODES):
         observations = game.reset()
+        agents_names = game.get_agents_names()
         for i_step in range(game.max_episode):
             # collect messages and observations
             # TODO
 
             # speaker module
-            # TODO
+            for i_a_name in agents_names:
+                image_incoder()
+                communication_autoencoder()
 
             # listener module
-            # TODO
+            for i_a_name in agents_names:
+                message_encoder()
+                policy_network()
+
 
             # execute actions
             actions = {agent.name: game.action_spaces[agent.name].sample() for agent in list(game.agents.values())}
@@ -47,8 +53,9 @@ def example_runs(times=1):
 
 
 if __name__ == '__main__':
-    # PARAMETERS
+    # HYPER-PARAMETERS
     EPISODES = 100
+    LR = 0.0001
 
     # VARIABLES
     game = FinalGoal()

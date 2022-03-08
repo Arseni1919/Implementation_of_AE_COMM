@@ -105,6 +105,9 @@ class FinalGoal(gym.Env):
                         self.observation_spaces[agent.name][obs_x][obs_y] = curr_cell.req
         return copy.deepcopy(self.observation_spaces)
 
+    def get_agents_names(self):
+        return list(self.agents.keys())
+
     def render(self, mode="human", second_graph_dict=None, alg_name='MAS Simulation'):
         if not self.to_render:
             self.to_render = True
