@@ -26,7 +26,7 @@ The Message Encoder first projects all input messages using an embedding
 layer of size 32, then concatenates and passes the message embeddings through a 3-layer MLP with
 hidden units [32, 64, 128] and ReLU activation. Dimension of the output message feature is 128.
 
-####Policy Network 
+#### Policy Network 
 
 Each policy network is consisted of a GRU policy with hidden size 128, a linear
 layer mapping GRU outputs to policy logits for the environment action, and a linear layer mapping
