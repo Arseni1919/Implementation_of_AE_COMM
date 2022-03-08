@@ -1,5 +1,88 @@
+import torch
+
 from GLOBALS import *
 
 
-class ImageEncoder:
-    pass
+class ImageEncoder(nn.Module):
+    def __init__(self):
+        super(ImageEncoder, self).__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, stride=2, padding=1),
+            nn.ELU(),
+            nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=2, padding=1),
+            nn.ELU(),
+            nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=2, padding=1),
+            nn.ELU(),
+            nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=2, padding=1),
+            nn.ELU(),
+            nn.AdaptiveAvgPool2d(output_size=3)
+        )
+
+    def forward(self, x):
+        return self.net(x.float())
+
+
+class CommunicationAutoencoder(nn.Module):
+    def __init__(self):
+        super(CommunicationAutoencoder, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(32, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU()
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(32, 32),
+            nn.ReLU(),
+            nn.Linear(32, 64),
+            nn.ReLU(),
+            nn.Linear(64, 128),
+            nn.ReLU()
+        )
+        self.output = nn.Linear(128, 10)
+
+    def forward(self, x):
+        encoder_output = self.encoder(x.float())
+        return encoder_output, self.output(self.decoder(encoder_output))
+
+
+class MessageEncoder(nn.Module):
+    def __init__(self, n_agents):
+        super(MessageEncoder, self).__init__()
+        self.n_agents = n_agents
+        self.embedding = nn.Linear(10, 32)
+        self.net = nn.Sequential(
+            nn.Linear(32 * self.n_agents, 32),
+            nn.ReLU(),
+            nn.Linear(32, 64),
+            nn.ReLU(),
+            nn.Linear(64, 128),
+        )
+
+    def forward(self, x):
+        x = torch.cat([self.embedding(item) for item in x])
+        return self.net(x.float())
+
+
+class PolicyNetwork(nn.Module):
+    def __init__(self, n_actions):
+        super(PolicyNetwork, self).__init__()
+        self.n_actions = n_actions
+        self.net = nn.Sequential(
+            nn.GRU(input_size=(32 + 128), hidden_size=128),
+            nn.ReLU(),
+            nn.Linear(32, self.n_actions),
+        )
+
+    def forward(self, x):
+        return self.net(x.float())
+
+
+
+
+
+
+
+

@@ -35,6 +35,7 @@ GRU outputs to the baseline value function.
 ## Credits 
 
 - [paper](https://arxiv.org/pdf/2110.15349.pdf)
+- [github | official code of the paper](https://github.com/ToruOwO/marl-ae-comm)
 - [github | gym OpenAI](https://github.com/Arseni1919/Learning_Gym_OpenAI#the-environment)
 - [gym OpenAI](https://gym.openai.com/envs/#classic_control)
 - [github | Minimalistic Gridworld Environment (MiniGrid)](https://github.com/maximecb/gym-minigrid)
