@@ -63,12 +63,14 @@ def example_runs(times=1):
 
 if __name__ == '__main__':
     # HYPER-PARAMETERS
-    N_AGENTS = 3
+    N_AGENTS = 1
+    # FIELD_SIZE = 15  !!!
+    FIELD_SIZE = 10
     EPISODES = 100
     LR = 0.0001
 
     # VARIABLES
-    game = FinalGoal(n_agents=N_AGENTS)
+    game = FinalGoal(n_agents=N_AGENTS, field_side=FIELD_SIZE)
     game.reset()
     agents_names = game.get_agents_names()
 

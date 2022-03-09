@@ -10,3 +10,4 @@ lightning_logs
 .ckpt
 example.ckpt
 .neptune
+data

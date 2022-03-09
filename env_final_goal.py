@@ -9,8 +9,8 @@ from GLOBALS import *
 
 
 class FinalGoal(gym.Env):
-    def __init__(self, n_agents=3):
-        self.field_side = 15
+    def __init__(self, n_agents=3, field_side=15):
+        self.field_side = field_side
         self.field = np.ndarray((self.field_side, self.field_side))
         self.n_goal_tiles = 1
         self.n_obstacle_tiles = 25
@@ -110,7 +110,7 @@ class FinalGoal(gym.Env):
                 dones[i_agent_name] = True
         observations = self.update_observations()
         # to tensor
-        rewards = {k: torch.tensor(v) for k, v in rewards.items()}
+        rewards = {k: torch.tensor(v).float() for k, v in rewards.items()}
         dones = {k: torch.tensor(v) for k, v in dones.items()}
         return observations, rewards, dones, infos
 
@@ -128,7 +128,7 @@ class FinalGoal(gym.Env):
         # to tensor
         # return copy.deepcopy(self.observation_spaces)
         t_observation_spaces = {
-            agent_name: torch.unsqueeze(torch.tensor(obs), 0)
+            agent_name: torch.unsqueeze(torch.tensor(obs).float(), 0)
             for agent_name, obs in self.observation_spaces.items()
         }
         return t_observation_spaces
