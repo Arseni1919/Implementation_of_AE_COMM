@@ -311,9 +311,7 @@ def main():
     train()
 
     # Load and run the model
-    model = ActorNet(obs_size=env.observation_size(), n_actions=env.action_size())
-    model.load_state_dict(torch.load(path_to_save))
-    model.eval()
+    model = torch.load(path_to_save)
     example_run(3, model=model)
 
 
@@ -326,7 +324,7 @@ if __name__ == '__main__':
 
     # FOR ALGORITHM
     BATCH_SIZE = 5000
-    N_UPDATES = 150
+    N_UPDATES = 100
     LR_CRITIC = 1e-3
     LR_ACTOR = 1e-3
     GAMMA = 0.995  # discount factor
@@ -334,11 +332,11 @@ if __name__ == '__main__':
     SIGMA = 0.4
     LAMBDA = 0.97
 
-    # ENV_NAME = "CartPole-v1"
-    # ENV_NAME = "MountainCar-v0"
+    ENV_NAME = "CartPole-v1"
+    # ENV_NAME = "MountainCar-v0" # TODO
     # ENV_NAME = "MountainCarContinuous-v0"
     # ENV_NAME = 'LunarLanderContinuous-v2'
-    ENV_NAME = 'LunarLander-v2'
+    # ENV_NAME = 'LunarLander-v2'
     # ENV_NAME = "BipedalWalker-v3"
 
     # FOR PLOTS
