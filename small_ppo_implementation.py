@@ -309,7 +309,12 @@ def example_run(times=1, model=None):
 
 def main():
     train()
-    example_run(3, model=actor)
+
+    # Load and run the model
+    model = ActorNet(obs_size=env.observation_size(), n_actions=env.action_size())
+    model.load_state_dict(torch.load(path_to_save))
+    model.eval()
+    example_run(3, model=model)
 
 
 if __name__ == '__main__':

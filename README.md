@@ -54,4 +54,4 @@ GRU outputs to the baseline value function.
 - [pytorch | REPRODUCIBILITY](https://pytorch.org/docs/stable/notes/randomness.html)
 - [pytorch | PROBABILITY DISTRIBUTIONS](https://pytorch.org/docs/stable/distributions.html#)
 - [pytorch | softmax](https://pytorch.org/docs/stable/generated/torch.nn.Softmax.html)
-- []()
+- [pytorch | SAVING AND LOADING MODELS](https://pytorch.org/tutorials/beginner/saving_loading_models.html)
