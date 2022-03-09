@@ -51,4 +51,7 @@ GRU outputs to the baseline value function.
 - [openai | MountainCar-v0](https://github.com/openai/gym/wiki/MountainCar-v0)
 - [opanai | ppo](https://spinningup.openai.com/en/latest/algorithms/ppo.html)
 - [github | my implementation of PPO](https://github.com/Arseni1919/PPO_implementation_variant_2)
+- [pytorch | REPRODUCIBILITY](https://pytorch.org/docs/stable/notes/randomness.html)
+- [pytorch | PROBABILITY DISTRIBUTIONS](https://pytorch.org/docs/stable/distributions.html#)
+- [pytorch | softmax](https://pytorch.org/docs/stable/generated/torch.nn.Softmax.html)
 - []()

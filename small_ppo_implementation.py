@@ -21,6 +21,8 @@ class ActorNet(nn.Module):
             nn.ELU(),
             nn.Linear(64, 64),
             nn.ELU(),
+            nn.Linear(64, 64),
+            nn.ELU(),
         )
         self.linear_head = nn.Linear(64, n_actions)
         self.softmax_head = nn.Softmax()
@@ -45,16 +47,15 @@ class CriticNet(nn.Module):
 
     def __init__(self, obs_size: int):
         super(CriticNet, self).__init__()
-        self.fc1 = nn.Linear(obs_size, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc5 = nn.Linear(64, 1)
 
         self.obs_net = nn.Sequential(
-            self.fc1,
+            nn.Linear(obs_size, 64),
             nn.ELU(),
-            self.fc2,
+            nn.Linear(64, 64),
             nn.ELU(),
-            self.fc5,
+            nn.Linear(64, 64),
+            nn.ELU(),
+            nn.Linear(64, 1),
         )
         self.obs_size = obs_size
         self.entropy_term = 0
@@ -265,7 +266,7 @@ def train():
         # RENDER
         # if i_update > N_UPDATES - 5:
         if i_update % 5 == 0:
-            example_run(1, actor_old)
+            example_run(1, actor)
             # pass
 
         # SAVE
@@ -282,7 +283,8 @@ def train():
 
 
 def example_run(times=1, model=None):
-    pass
+    stars = 70
+    print("*" * stars)
     for i_episode in range(times):
         obs = env.reset()
         done = False
@@ -300,13 +302,14 @@ def example_run(times=1, model=None):
 
             steps += 1
             rewards += reward
-            print(f'\repisode: {i_episode}/{times}, step: {steps}, acc. reward:{rewards}', end='')
+            print(f'\r[EXAMPLE RUN]: episode: {i_episode + 1}/{times}, step: {steps}, acc. reward:{rewards}', end='')
         print()
+    print("*" * stars)
 
 
 def main():
     train()
-    example_run(3)
+    example_run(3, model=actor)
 
 
 if __name__ == '__main__':
@@ -318,18 +321,19 @@ if __name__ == '__main__':
 
     # FOR ALGORITHM
     BATCH_SIZE = 5000
-    N_UPDATES = 100
+    N_UPDATES = 150
     LR_CRITIC = 1e-3
     LR_ACTOR = 1e-3
     GAMMA = 0.995  # discount factor
-    EPSILON = 0.1
+    EPSILON = 0.05
     SIGMA = 0.4
     LAMBDA = 0.97
 
-    ENV_NAME = "CartPole-v1"
+    # ENV_NAME = "CartPole-v1"
     # ENV_NAME = "MountainCar-v0"
     # ENV_NAME = "MountainCarContinuous-v0"
     # ENV_NAME = 'LunarLanderContinuous-v2'
+    ENV_NAME = 'LunarLander-v2'
     # ENV_NAME = "BipedalWalker-v3"
 
     # FOR PLOTS
