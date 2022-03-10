@@ -25,7 +25,7 @@ class ActorNet(nn.Module):
             nn.ELU(),
         )
         self.linear_head = nn.Linear(64, n_actions)
-        self.softmax_head = nn.Softmax()
+        self.softmax_head = nn.Softmax(dim=1)
         self.n_actions = n_actions
         self.obs_size = obs_size
         self.entropy_term = 0
@@ -64,6 +64,37 @@ class CriticNet(nn.Module):
         state = state.float()
         value = self.obs_net(state)
         return value
+
+
+class RunningStateStat:
+    """
+    https://en.wikipedia.org/wiki/Moving_average
+
+    """
+    def __init__(self, state_tensor):
+        state_np = state_tensor.detach().squeeze().numpy()
+        self.len = 1
+        self.running_mean = state_np
+        self.running_std = state_np ** 2
+
+    def update(self, state):
+        self.len += 1
+        old_mean = self.running_mean.copy()
+        self.running_mean[...] = old_mean + (state - old_mean) / self.len
+        self.running_std[...] = self.running_std + (state - old_mean) * (state - self.running_mean)
+
+    def mean(self):
+        return self.running_mean
+
+    def std(self):
+        return np.sqrt(self.running_std / (self.len - 1))
+
+    def get_normalized(self, state_tensor):
+        state_np = state_tensor.detach().squeeze().numpy()
+        self.update(state_np)
+        state_np = np.clip((state_np - self.mean()) / (self.std() + 1e-6), -10., 10.)
+        output_state_tensor = torch.FloatTensor(state_np)
+        return output_state_tensor
 
 
 class EnvTensorWrapper(gym.Env):
@@ -261,7 +292,12 @@ def train():
         probs, loss_actor = update_actor(states_tensor, actions_tensor, advantages_tensor)
 
         # PLOTTER
-        plotter.neptune_plot({})
+        plotter.neptune_plot({
+            'critic loss': loss_critic.item(),
+            'actor loss': loss_actor.item(),
+            'entropy in props': Categorical(probs).entropy().mean().item(),
+
+        })
 
         # RENDER
         # if i_update > N_UPDATES - 5:
@@ -324,7 +360,7 @@ if __name__ == '__main__':
 
     # FOR ALGORITHM
     BATCH_SIZE = 5000
-    N_UPDATES = 100
+    N_UPDATES = 300
     LR_CRITIC = 1e-3
     LR_ACTOR = 1e-3
     GAMMA = 0.995  # discount factor
@@ -342,10 +378,10 @@ if __name__ == '__main__':
     # FOR PLOTS
     SAVE_RESULTS = True
     path_to_save = f'data/actor_{ENV_NAME}.pt'
-    # NEPTUNE = True
-    NEPTUNE = False
+    NEPTUNE = True
+    # NEPTUNE = False
 
-    plotter = NeptunePlotter(plot_neptune=NEPTUNE, tags=['PPO'], name='PPO_small')
+    plotter = NeptunePlotter(plot_neptune=NEPTUNE, tags=['PPO', f'{ENV_NAME}'], name='PPO_small')
     env = EnvTensorWrapper(env_name=ENV_NAME)
 
     # --------------------------- # NETS # -------------------------- #
