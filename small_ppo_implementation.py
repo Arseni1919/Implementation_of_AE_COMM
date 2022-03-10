@@ -69,7 +69,6 @@ class CriticNet(nn.Module):
 class RunningStateStat:
     """
     https://en.wikipedia.org/wiki/Moving_average
-
     """
     def __init__(self, state_tensor):
         state_np = state_tensor.detach().squeeze().numpy()
@@ -103,17 +102,23 @@ class EnvTensorWrapper(gym.Env):
         self.game = gym.make(self.env_name)
         self.action_space = self.game.action_space
         self.observation_space = self.game.observation_space
+        self.obs_statistics = None
+
+    def reset(self):
+        obs = self.game.reset()
+        obs = torch.tensor(obs).float()
+        if self.obs_statistics:
+            obs = self.obs_statistics.get_normalized(obs)
+        return obs
 
     def step(self, action: torch.Tensor):
         obs, reward, done, info = self.game.step(action=action.item())
         obs = torch.tensor(obs).float()
+        if self.obs_statistics:
+            obs = self.obs_statistics.get_normalized(obs)
         reward = torch.tensor(reward).float()
         done = torch.tensor(done)
         return obs, reward, done, info
-
-    def reset(self):
-        obs = self.game.reset()
-        return torch.tensor(obs).float()
 
     def render(self, mode="human"):
         self.game.render(mode=mode)
@@ -296,7 +301,8 @@ def train():
             'critic loss': loss_critic.item(),
             'actor loss': loss_actor.item(),
             'entropy in props': Categorical(probs).entropy().mean().item(),
-
+            'obs. stats - mean': obs_stat.mean().mean(),
+            'obs. stats - std': obs_stat.std().mean(),
         })
 
         # RENDER
@@ -360,7 +366,7 @@ if __name__ == '__main__':
 
     # FOR ALGORITHM
     BATCH_SIZE = 5000
-    N_UPDATES = 300
+    N_UPDATES = 100
     LR_CRITIC = 1e-3
     LR_ACTOR = 1e-3
     GAMMA = 0.995  # discount factor
@@ -392,7 +398,9 @@ if __name__ == '__main__':
     critic_optim = torch.optim.Adam(critic.parameters(), lr=LR_CRITIC)
     actor_optim = torch.optim.Adam(actor.parameters(), lr=LR_ACTOR)
 
-    # --------------------------- # REPLAY BUFFER # -------------------------- #
+    # --------------------------- # OBS STATS # -------------------------- #
+    obs_stat = RunningStateStat(env.reset())
+    env.obs_statistics = obs_stat
     # --------------------------- # NOISE # -------------------------- #
     # current_sigma = SIGMA
     # normal_distribution = Normal(torch.tensor(0.0), torch.tensor(current_sigma))
