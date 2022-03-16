@@ -16,9 +16,9 @@ class FinalGoal(gym.Env):
         self.n_obstacle_tiles = 25
         self.n_agents = n_agents
         self.obs_side = 7
-        # self.n_actions = 5
+        self.n_actions = 5
         self.max_episode = 512
-        self.max_episode = 5
+        # self.max_episode = 5
         self.action_spaces = {}
         self.observation_spaces = {}
         self.positions = {}

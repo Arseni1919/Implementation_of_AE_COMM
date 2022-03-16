@@ -4,6 +4,10 @@
 
 ![](static/overview.png)
 
+### PPO Pseudocode
+
+![](static/ppo_pseudocode.png)
+
 ### Model
 
 #### Image Encoder 

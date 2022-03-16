@@ -13,13 +13,19 @@ class Agent:
 
 
 def train(game, agents):
+
+    # EPISODE - FULL GAME
     for i_episode in range(EPISODES):
         observations = game.reset()
+
         # initial messages
         messages = {agent.name: torch.zeros(1, 10) for agent in agents}
 
+        # STEP - ONE STEP INSIDE A GAME
         for i_step in range(game.max_episode):
             new_messages, actions = {}, {}
+
+            # EACH AGENT DO SOME CALCULATIONS DURING THE STEP
             for agent in agents:
 
                 # speaker module
@@ -50,12 +56,12 @@ def train(game, agents):
             observations = new_observations
             messages = {agent.name: new_messages[agent.name].detach() for agent in agents}
 
-            # save the model
-            # TODO
-
             # rendering + neptune + print
             game.render()
             print(f'\repisode: {i_episode}/{EPISODES}, step: {i_step}/{game.max_episode}, loss:', end='')
+
+            # save the model
+            # TODO
 
 
 def example_runs(game, agents, times=1):
