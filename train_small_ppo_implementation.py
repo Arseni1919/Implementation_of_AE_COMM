@@ -374,8 +374,8 @@ if __name__ == '__main__':
     SIGMA = 0.4
     LAMBDA = 0.97
 
-    ENV_NAME = "CartPole-v1"
-    # ENV_NAME = "MountainCar-v0" # TODO
+    # ENV_NAME = "CartPole-v1"
+    ENV_NAME = "MountainCar-v0" # TODO
     # ENV_NAME = "MountainCarContinuous-v0"
     # ENV_NAME = 'LunarLanderContinuous-v2'
     # ENV_NAME = 'LunarLander-v2'
@@ -384,8 +384,8 @@ if __name__ == '__main__':
     # FOR PLOTS
     SAVE_RESULTS = True
     path_to_save = f'data/actor_{ENV_NAME}.pt'
-    NEPTUNE = True
-    # NEPTUNE = False
+    # NEPTUNE = True
+    NEPTUNE = False
 
     plotter = NeptunePlotter(plot_neptune=NEPTUNE, tags=['PPO', f'{ENV_NAME}'], name='PPO_small')
     env = EnvTensorWrapper(env_name=ENV_NAME)
@@ -410,10 +410,6 @@ if __name__ == '__main__':
 
     # --------------------------- # PLOTTER INIT # -------------------------- #
     plotter.neptune_init()
-
-    mean_list, std_list, loss_list_actor, loss_list_critic = [], [], [], []
-    list_state_mean_1, list_state_std_1 = [], []
-    list_state_mean_2, list_state_std_2 = [], []
     # ---------------------------------------------------------------- #
     # ---------------------------------------------------------------- #
     main()

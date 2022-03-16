@@ -16,8 +16,9 @@ class FinalGoal(gym.Env):
         self.n_obstacle_tiles = 25
         self.n_agents = n_agents
         self.obs_side = 7
-        self.n_actions = 5
+        # self.n_actions = 5
         self.max_episode = 512
+        self.max_episode = 5
         self.action_spaces = {}
         self.observation_spaces = {}
         self.positions = {}
@@ -80,10 +81,15 @@ class FinalGoal(gym.Env):
         # update observations
         observation_to_return = self.update_observations()
 
+        # for rendering
+        # if self.to_render:
+        #     plt.close()
+
         # return observations
         return observation_to_return
 
     def step(self, actions):
+        # print(f'actions: {actions}')
         observations, rewards, dones, infos = {}, {}, {}, {}
         self.counter += 1
         for i_agent_name, i_action in actions.items():

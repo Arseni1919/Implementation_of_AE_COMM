@@ -18,7 +18,7 @@ from GLOBALS import *
 # output = m(input)
 # print(output)
 
-from small_ppo_implementation import ActorNet
+from train_small_ppo_implementation import ActorNet
 from torch.distributions import Categorical
 torch.manual_seed(0)
 random.seed(0)

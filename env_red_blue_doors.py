@@ -13,3 +13,4 @@ class RedBlueDoors(gym.Env):
 
     def render(self, mode="human"):
         pass
+
