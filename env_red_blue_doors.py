@@ -14,3 +14,5 @@ class RedBlueDoors(gym.Env):
     def render(self, mode="human"):
         pass
 
+    def close(self):
+        plt.close()

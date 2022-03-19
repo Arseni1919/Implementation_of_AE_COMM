@@ -150,7 +150,7 @@ def get_train_action(net, observation):
     return action, action_log_prob
 
 
-def get_trajectories(scores, scores_avg):
+def get_trajectories():
     states, actions, rewards, dones, next_states = [], [], [], [], []
 
     n_episodes = 0
@@ -183,8 +183,6 @@ def get_trajectories(scores, scores_avg):
 
     print(f'\r(episodes {n_episodes}, steps {len(rewards)}), average score: {np.mean(episode_scores)} {episode_scores}')
 
-    scores.append(np.mean(episode_scores))
-    scores_avg.append(scores_avg[-1] * 0.9 + np.mean(episode_scores) * 0.1)
     states = np.array(states)
     actions = np.array(actions)
     rewards = np.array(rewards) / n_episodes
@@ -273,15 +271,13 @@ def save_results(model_to_save, path):
 def train():
     print('Training...')
     best_score = -100
-    total_scores, total_avg_scores = [0], [0]
     # --------------------------- # MAIN LOOP # -------------------------- #
     for i_update in range(N_UPDATES):
         print(f'Update {i_update + 1}')
 
         with torch.no_grad():
             # SAMPLE TRAJECTORIES
-            states, actions, rewards, dones, next_states, average_score = get_trajectories(total_scores,
-                                                                                           total_avg_scores)  # , state_stat)
+            states, actions, rewards, dones, next_states, average_score = get_trajectories()
             states_tensor = torch.tensor(states).float()
             actions_tensor = torch.tensor(actions).float()
             critic_values_tensor = critic(states_tensor).detach().squeeze()
@@ -375,14 +371,15 @@ if __name__ == '__main__':
     LAMBDA = 0.97
 
     # ENV_NAME = "CartPole-v1"
-    ENV_NAME = "MountainCar-v0" # TODO
+    ENV_NAME = "MountainCar-v0"
     # ENV_NAME = "MountainCarContinuous-v0"
     # ENV_NAME = 'LunarLanderContinuous-v2'
     # ENV_NAME = 'LunarLander-v2'
     # ENV_NAME = "BipedalWalker-v3"
 
     # FOR PLOTS
-    SAVE_RESULTS = True
+    # SAVE_RESULTS = True
+    SAVE_RESULTS = False
     path_to_save = f'data/actor_{ENV_NAME}.pt'
     # NEPTUNE = True
     NEPTUNE = False

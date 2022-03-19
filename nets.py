@@ -75,11 +75,13 @@ class PolicyNetwork(nn.Module):
         self.linear_1 = nn.Linear(128, self.n_actions)
         self.relu = nn.ReLU()
         self.hidden_1 = torch.zeros(1, 1, 128)
+        self.softmax_head = nn.Softmax(dim=2)
 
     def forward(self, x):
         output_gru, self.hidden_1 = self.gru(x, self.hidden_1)
         output_linear = self.linear_1(self.relu(output_gru))
-        return output_linear
+        output_softmax = self.softmax_head(output_linear)
+        return output_softmax
 
 
 

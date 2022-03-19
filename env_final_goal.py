@@ -210,6 +210,9 @@ class FinalGoal(gym.Env):
 
             plt.pause(0.05)
 
+    def close(self):
+        plt.close()
+
 
 class Agent:
     def __init__(self, agent_id, x=-1, y=-1, sr=5, mr=2, cred=0.5):
