@@ -9,7 +9,8 @@ from GLOBALS import *
 
 
 class FinalGoal(gym.Env):
-    def __init__(self, n_agents=3, field_side=15):
+    def __init__(self, n_agents=3, field_side=15, max_episode=512):
+        self.name = "final_goal"
         self.field_side = field_side
         self.field = np.ndarray((self.field_side, self.field_side))
         self.n_goal_tiles = 1
@@ -17,7 +18,7 @@ class FinalGoal(gym.Env):
         self.n_agents = n_agents
         self.obs_side = 7
         self.n_actions = 5
-        self.max_episode = 512
+        self.max_episode = max_episode
         # self.max_episode = 5
         self.action_spaces = {}
         self.observation_spaces = {}

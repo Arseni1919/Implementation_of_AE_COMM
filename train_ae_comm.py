@@ -7,17 +7,7 @@ from neptune_plotter import NeptunePlotter
 from wrappers_and_state_stats import MARunningStateStat, MAEnvTensorWrapper
 
 
-def save_results(models_to_save: dict):
-    if SAVE_RESULTS:
-        # SAVING...
-        print(f"Saving models...")
-        for model_name, model in models_to_save.items():
-            path_to_save = f'saved_model/{ENV_NAME}_{model_name}.pt'
-            torch.save(model, path_to_save)
-        print(f"Finished saving the models.")
-
-
-def sample_trajectories(game, agents, plotter, batch_size=1000, to_render=True):
+def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_render=True):
     n_episodes = 0
     episode_scores = []
 
@@ -62,7 +52,8 @@ def sample_trajectories(game, agents, plotter, batch_size=1000, to_render=True):
 
     # after finishing the batch
     average_score = np.mean(episode_scores)
-    print(f'\r[SAMPLE] - episodes {n_episodes}, batch: {len(agents[0].h_rewards)}  average score: {average_score} {episode_scores}')
+    print(
+        f'\r[SAMPLE {i_update + 1}] - episodes {n_episodes}, batch: {len(agents[0].h_rewards)}  average score: {average_score} {episode_scores}')
 
     return average_score
 
@@ -72,18 +63,16 @@ def train(game, agents, plotter):
     best_score = -100
     # --------------------------- # MAIN LOOP # -------------------------- #
     for i_update in range(N_UPDATES):
-        print(f'Update {i_update + 1}')
+        print(f'Update {i_update + 1}', end=' ')
 
         # SAMPLE TRAJECTORIES
-        # TODO
-        average_score = sample_trajectories(game, agents, plotter,
+        average_score = sample_trajectories(game, agents, plotter, i_update,
                                             batch_size=BATCH_SIZE, to_render=False)
 
         # UPDATE NN
         # TODO
         for agent in agents:
             agent.update_nn()
-            agent.remove_history()
 
         # PLOTTER
         # TODO
@@ -96,28 +85,28 @@ def train(game, agents, plotter):
         })
 
         # RENDER
-        # TODO
         # if i_update > N_UPDATES - 5:
         if i_update % 5 == 0:
             sample_runs(game, agents, times=1)
 
         # SAVE
-        # TODO
         if average_score > best_score:
             best_score = average_score
             for agent in agents:
-                agent.save_models()
+                agent.save_models(env_name=game.name, save_results=SAVE_RESULTS)
 
     # FINISH TRAINING
     print('Finished train.')
 
 
-def sample_runs(game, agents, models=None, times=1):
-    # TODO: load models
+def sample_runs(game, agents, times=1, load_models=False, to_render=True):
+    if load_models:
+        for agent in agents:
+            agent.load_models(env_name=game.name)
     # EPISODE - FULL GAME
     for i_episode in range(times):
         observations = game.reset()
-
+        episode_score = 0
         # initial messages
         messages = {agent.name: torch.zeros(1, 10) for agent in agents}
 
@@ -131,21 +120,25 @@ def sample_runs(game, agents, models=None, times=1):
                 new_messages[agent.name] = new_message
                 actions[agent.name] = action
 
-                # execute actions
+            # execute actions
             new_observations, rewards, dones, infos = game.step(actions)
 
             # update variables
             observations = new_observations
             messages = {agent.name: new_messages[agent.name].detach() for agent in agents}
+            episode_score += torch.sum(torch.tensor(list(rewards.values()))).item()
 
             # rendering + neptune + print
-            game.render()
-            print(f'\repisode: {i_episode}/{EPISODES}, step: {i_step}/{game.max_episode}, loss:', end='')
+            if to_render:
+                game.render()
+            print(
+                f'\r[RUN ({i_episode + 1}/{times})] - step: {i_step}/{game.max_episode}, episode_score: {episode_score}', end='')
+        print()
 
 
 def main():
     # VARIABLES
-    game = FinalGoal(n_agents=N_AGENTS, field_side=FIELD_SIZE)
+    game = FinalGoal(n_agents=N_AGENTS, field_side=FIELD_SIZE, max_episode=MAX_EPISODE_LENGTH)
     # --------------------------- # WRAPPERS & OBS STATS # -------------------------- #
     game = MAEnvTensorWrapper(game=game)
     obs_stat = MARunningStateStat(game.reset())
@@ -156,14 +149,13 @@ def main():
         Agent(agent_name, n_agents=N_AGENTS, n_actions=5)
         for agent_name in game.get_agents_names()
     ]
-    plotter = NeptunePlotter(plot_neptune=NEPTUNE, tags=['ae_comm', 'ppo', f'{ENV_NAME}'], name='ae_comm_sample')
+    plotter = NeptunePlotter(plot_neptune=NEPTUNE, tags=['ae_comm', 'ppo', f'{game.name}'], name='ae_comm_sample')
 
     # TRAINING
     train(game=game, agents=agents_list, plotter=plotter)
 
     # EXAMPLE RUNS
-    # TODO: load models
-    sample_runs(game=game, agents=agents_list, times=2)
+    sample_runs(game=game, agents=agents_list, times=2, load_models=True)
 
     # FINISH
     plotter.close()
@@ -178,14 +170,12 @@ if __name__ == '__main__':
     FIELD_SIZE = 15  # !!!
     # FIELD_SIZE = 25
     EPISODES = 100
+    MAX_EPISODE_LENGTH = 50
     N_UPDATES = 100
     LR = 0.0001
-    ENV_NAME = "final_goal"
     # NEPTUNE = True
     NEPTUNE = False
-    SAVE_RESULTS = True
+    # SAVE_RESULTS = True
+    SAVE_RESULTS = False
 
     main()
-
-
-

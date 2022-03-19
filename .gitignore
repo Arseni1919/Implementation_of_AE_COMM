@@ -11,3 +11,4 @@ lightning_logs
 example.ckpt
 .neptune
 data
+saved_model

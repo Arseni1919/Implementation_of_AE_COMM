@@ -1,3 +1,5 @@
+import torch
+
 from GLOBALS import *
 from nets import *
 
@@ -10,6 +12,12 @@ class Agent:
         self.ca = CommunicationAutoencoder()
         self.me = MessageEncoder(n_agents=n_agents)
         self.pn = PolicyNetwork(n_actions=n_actions)
+        self.models_dict = {
+            'ie': self.ie,
+            'ca': self.ca,
+            'me': self.me,
+            'pn': self.pn,
+        }
         # HISTORY
         self.h_obs = []
         self.h_prev_messages = []
@@ -54,12 +62,7 @@ class Agent:
     def _update_actor(self):
         pass
 
-    def update_nn(self):
-        self._compute_returns_and_advantages()
-        self._update_critic()
-        self._update_actor()
-
-    def remove_history(self):
+    def _remove_history(self):
         # HISTORY
         self.h_obs = []
         self.h_prev_messages = []
@@ -67,8 +70,25 @@ class Agent:
         self.h_rewards = []
         self.h_dones = []
 
-    def save_models(self):
-        pass
+    def update_nn(self):
+        self._compute_returns_and_advantages()
+        self._update_critic()
+        self._update_actor()
+        self._remove_history()
 
-    def load_models(self):
-        pass
+    def save_models(self, env_name, save_results=False):
+        if save_results:
+            print(f"Saving models of {self.name}...")
+            for model_name, model in self.models_dict.items():
+                path_to_save = f'saved_model/{env_name}_{self.name}_{model_name}.pt'
+                torch.save(model, path_to_save)
+            print(f"Finished saving the models of {self.name}.")
+
+    def load_models(self, env_name):
+        for model_name, model in self.models_dict.items():
+            path_to_load = f'saved_model/{env_name}_{self.name}_{model_name}.pt'
+            self.models_dict[model_name] = torch.load(path_to_load)
+        self.ie = self.models_dict['ie']
+        self.ca = self.models_dict['ca']
+        self.me = self.models_dict['me']
+        self.pn = self.models_dict['pn']

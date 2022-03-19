@@ -8,6 +8,7 @@ class MAEnvTensorWrapper(gym.Env):
         self.game = game
         self.obs_statistics = None
         self.max_episode = self.game.max_episode
+        self.name = self.game.name
 
     def reset(self):
         obs_dict = self.game.reset()
