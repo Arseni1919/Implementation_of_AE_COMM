@@ -86,7 +86,7 @@ def train(game, agents, plotter):
 
         # RENDER
         # if i_update > N_UPDATES - 5:
-        if i_update % 5 == 0:
+        if i_update % 10 == 0:
             sample_runs(game, agents, times=1)
 
         # SAVE
