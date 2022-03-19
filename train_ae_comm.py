@@ -2,38 +2,9 @@ import random
 
 from GLOBALS import *
 from env_final_goal import FinalGoal
-from nets import *
+from ae_comm_agent import Agent
 from neptune_plotter import NeptunePlotter
-
-
-class Agent:
-    def __init__(self, agent_name, n_agents, n_actions):
-        self.name = agent_name
-        self.ie = ImageEncoder()
-        self.ca = CommunicationAutoencoder()
-        self.me = MessageEncoder(n_agents=n_agents)
-        self.pn = PolicyNetwork(n_actions=n_actions)
-
-    def forward(self, observation, messages):
-        # speaker module
-        output_ie = self.ie(torch.unsqueeze(observation, 0))
-        output_ie = torch.squeeze(output_ie)
-        output_encoder, output_decoder = self.ca(torch.unsqueeze(output_ie, 0))
-
-        # listener module
-        output_me = self.me(list(messages.values()))
-        # output_me = torch.unsqueeze(output_me, 0)
-        input_pn = torch.unsqueeze(torch.cat((output_encoder, output_me), 1), 0)
-        output_pn_probs = self.pn(input_pn)
-
-        # update messages
-        new_message = output_decoder
-        # action = random.choice(range(6))
-        categorical_distribution = Categorical(output_pn_probs)
-        action = categorical_distribution.sample()
-        action_log_prob = categorical_distribution.log_prob(action)
-
-        return new_message, action
+from wrappers_and_state_stats import MARunningStateStat, MAEnvTensorWrapper
 
 
 def save_results(models_to_save: dict):
@@ -46,45 +17,53 @@ def save_results(models_to_save: dict):
         print(f"Finished saving the models.")
 
 
-def sample_trajectories(game, agents, batch_size=1000):
-    states = {agent.name: [] for agent in agents}
-    actions = {agent.name: [] for agent in agents}
-    rewards = {agent.name: [] for agent in agents}
-    dones = {agent.name: [] for agent in agents}
-    next_states = {agent.name: [] for agent in agents}
-
+def sample_trajectories(game, agents, plotter, batch_size=1000, to_render=True):
     n_episodes = 0
     episode_scores = []
 
-    while not len(rewards[agents[0].name]) > batch_size:
+    # BATCH
+    while not len(agents[0].h_rewards) > batch_size:
         observations = game.reset()
-
+        episode_score = 0
         # initial messages
         messages = {agent.name: torch.zeros(1, 10) for agent in agents}
 
         # STEP - ONE STEP INSIDE A GAME
         for i_step in range(game.max_episode):
+            print(f'\r(step: {len(agents[0].h_rewards)})', end='')
             new_messages, actions = {}, {}
 
-            # EACH AGENT DO SOME CALCULATIONS DURING THE STEP
+            # DO THE STEP
             for agent in agents:
-
                 new_message, action = agent.forward(observations[agent.name], messages)
                 new_messages[agent.name] = new_message
                 actions[agent.name] = action
-
-            # execute actions
             new_observations, rewards, dones, infos = game.step(actions)
+
+            # SAVE HISTORY
+            for agent in agents:
+                agent.save_history(obs=observations[agent.name], prev_m=messages[agent.name],
+                                   action=actions[agent.name], reward=rewards[agent.name],
+                                   done=dones[agent.name])
 
             # update variables
             observations = new_observations
             messages = {agent.name: new_messages[agent.name].detach() for agent in agents}
+            episode_score += torch.sum(torch.tensor(list(rewards.values()))).item()
 
-            # rendering + neptune + print
-            game.render()
-            print(f'\r(episodes {n_episodes}, steps {len(rewards)}), average score: {np.mean(episode_scores)} {episode_scores}')
+            # rendering
+            if to_render:
+                game.render()
 
-    average_score = 0
+        # after finishing the episode
+        episode_scores.append(episode_score)
+        n_episodes += 1
+        plotter.neptune_plot({"episode_score": episode_score})
+
+    # after finishing the batch
+    average_score = np.mean(episode_scores)
+    print(f'\r[SAMPLE] - episodes {n_episodes}, batch: {len(agents[0].h_rewards)}  average score: {average_score} {episode_scores}')
+
     return average_score
 
 
@@ -97,16 +76,14 @@ def train(game, agents, plotter):
 
         # SAMPLE TRAJECTORIES
         # TODO
-        average_score = sample_trajectories(game, agents, batch_size=BATCH_SIZE)
+        average_score = sample_trajectories(game, agents, plotter,
+                                            batch_size=BATCH_SIZE, to_render=False)
 
         # UPDATE NN
         # TODO
         for agent in agents:
-            # COMPUTE RETURNS AND ADVANTAGES
-            pass
-            # UPDATE CRITIC
-            pass
-            # UPDATE ACTOR
+            agent.update_nn()
+            agent.remove_history()
 
         # PLOTTER
         # TODO
@@ -128,13 +105,15 @@ def train(game, agents, plotter):
         # TODO
         if average_score > best_score:
             best_score = average_score
-            save_results(models_to_save=None)
+            for agent in agents:
+                agent.save_models()
 
     # FINISH TRAINING
     print('Finished train.')
 
 
 def sample_runs(game, agents, models=None, times=1):
+    # TODO: load models
     # EPISODE - FULL GAME
     for i_episode in range(times):
         observations = game.reset()
@@ -167,6 +146,11 @@ def sample_runs(game, agents, models=None, times=1):
 def main():
     # VARIABLES
     game = FinalGoal(n_agents=N_AGENTS, field_side=FIELD_SIZE)
+    # --------------------------- # WRAPPERS & OBS STATS # -------------------------- #
+    game = MAEnvTensorWrapper(game=game)
+    obs_stat = MARunningStateStat(game.reset())
+    game.obs_statistics = obs_stat
+    # ------------------------------------------------------------------------------- #
     game.reset()
     agents_list = [
         Agent(agent_name, n_agents=N_AGENTS, n_actions=5)
@@ -178,6 +162,7 @@ def main():
     train(game=game, agents=agents_list, plotter=plotter)
 
     # EXAMPLE RUNS
+    # TODO: load models
     sample_runs(game=game, agents=agents_list, times=2)
 
     # FINISH
@@ -188,7 +173,7 @@ def main():
 if __name__ == '__main__':
     # HYPER-PARAMETERS
     # N_AGENTS = 1
-    BATCH_SIZE = 5000
+    BATCH_SIZE = 1000
     N_AGENTS = 3  # !!!
     FIELD_SIZE = 15  # !!!
     # FIELD_SIZE = 25

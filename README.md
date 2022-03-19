@@ -36,6 +36,18 @@ Each policy network is consisted of a GRU policy with hidden size 128, a linear
 layer mapping GRU outputs to policy logits for the environment action, and a linear layer mapping
 GRU outputs to the baseline value function.
 
+## Field 
+
+### FindGoal
+FindGoal is a non-ordinal, multi-agent, non-referential game. 
+We use N=3 agents, and at each time step, each agent observes a partial view of the environment centered at its current position. 
+The task of agents is to reach the green goal location as fast as possible. 
+Each agent receives an individual reward of1for completing the task and an additional reward of1when all agents have reached the goal. 
+Hence, the optimal strategy of an agent is to communicate the goal location once it observes the goal. 
+If all agents learn a sufficiently optimized search algorithm, they can maximize their reward without communication.
+
+![](static/field.png)
+
 ## Credits 
 
 - [paper](https://arxiv.org/pdf/2110.15349.pdf)

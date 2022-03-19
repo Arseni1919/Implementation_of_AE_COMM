@@ -73,6 +73,7 @@ class PolicyNetwork(nn.Module):
         self.n_actions = n_actions
         self.gru = nn.GRU(input_size=(32 + 128), hidden_size=128)
         self.linear_1 = nn.Linear(128, self.n_actions)
+        self.linear_2 = nn.Linear(128, 1)
         self.relu = nn.ReLU()
         self.hidden_1 = torch.zeros(1, 1, 128)
         self.softmax_head = nn.Softmax(dim=2)
@@ -81,7 +82,8 @@ class PolicyNetwork(nn.Module):
         output_gru, self.hidden_1 = self.gru(x, self.hidden_1)
         output_linear = self.linear_1(self.relu(output_gru))
         output_softmax = self.softmax_head(output_linear)
-        return output_softmax
+        output_value_func = self.linear_2(self.relu(output_gru))
+        return output_softmax, output_value_func
 
 
 

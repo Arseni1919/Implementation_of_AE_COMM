@@ -8,7 +8,7 @@ from GLOBALS import *
 
 class ActorNet(nn.Module):
     """
-    obs_size: observation/state size of the environment
+    obs_size: observation/state_np size of the environment
     n_actions: number of discrete actions available in the environment
     # hidden_size: size of hidden layers
     """
@@ -40,7 +40,7 @@ class ActorNet(nn.Module):
 
 class CriticNet(nn.Module):
     """
-    obs_size: observation/state size of the environment
+    obs_size: observation/state_np size of the environment
     n_actions: number of discrete actions available in the environment
     # hidden_size: size of hidden layers
     """
@@ -76,11 +76,11 @@ class RunningStateStat:
         self.running_mean = state_np
         self.running_std = state_np ** 2
 
-    def update(self, state):
+    def _update(self, state_np):
         self.len += 1
         old_mean = self.running_mean.copy()
-        self.running_mean[...] = old_mean + (state - old_mean) / self.len
-        self.running_std[...] = self.running_std + (state - old_mean) * (state - self.running_mean)
+        self.running_mean[...] = old_mean + (state_np - old_mean) / self.len
+        self.running_std[...] = self.running_std + (state_np - old_mean) * (state_np - self.running_mean)
 
     def mean(self):
         return self.running_mean
@@ -90,7 +90,7 @@ class RunningStateStat:
 
     def get_normalized(self, state_tensor):
         state_np = state_tensor.detach().squeeze().numpy()
-        self.update(state_np)
+        self._update(state_np)
         state_np = np.clip((state_np - self.mean()) / (self.std() + 1e-6), -10., 10.)
         output_state_tensor = torch.FloatTensor(state_np)
         return output_state_tensor
@@ -173,7 +173,7 @@ def get_trajectories():
             next_states.append(next_state.detach().squeeze().numpy())
 
             state = next_state
-            # state = state_stat.get_normalized_state(state)
+            # state_np = state_stat.get_normalized_state(state_np)
 
             episode_score += reward.item()
 

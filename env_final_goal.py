@@ -79,14 +79,14 @@ class FinalGoal(gym.Env):
             self.action_spaces[agent.name] = gym.spaces.Discrete(self.n_actions)
 
         # update observations
-        observation_to_return = self.update_observations()
+        t_observation_to_return = self._update_observations()
 
         # for rendering
         # if self.to_render:
         #     plt.close()
 
         # return observations
-        return observation_to_return
+        return t_observation_to_return
 
     def step(self, actions):
         # print(f'actions: {actions}')
@@ -112,15 +112,14 @@ class FinalGoal(gym.Env):
             else:
                 rewards[i_agent_name] = -1
             # dones
-            if self.counter == self.max_episode:
-                dones[i_agent_name] = True
-        observations = self.update_observations()
+            dones[i_agent_name] = self.counter == self.max_episode
+        observations = self._update_observations()
         # to tensor
         rewards = {k: torch.tensor(v).float() for k, v in rewards.items()}
         dones = {k: torch.tensor(v) for k, v in dones.items()}
         return observations, rewards, dones, infos
 
-    def update_observations(self):
+    def _update_observations(self):
         # update observations
         for agent_name, agent in self.agents.items():
             self.observation_spaces[agent.name] = np.zeros((self.obs_side, self.obs_side))
