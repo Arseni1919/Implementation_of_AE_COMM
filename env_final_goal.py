@@ -190,7 +190,7 @@ class FinalGoal(gym.Env):
                 self.ax.add_patch(circle1)
                 self.ax.annotate(robot.name, (robot.x, robot.y), fontsize=5)
 
-                # range of observation
+                # range of obs
                 obs_rectangle = plt.Rectangle((robot.x - 0.5 * (self.obs_side),
                                                robot.y - 0.5 * (self.obs_side)),
                                               self.obs_side, self.obs_side, color='tab:purple', alpha=0.15)

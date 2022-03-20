@@ -8,7 +8,7 @@ from GLOBALS import *
 
 class ActorNet(nn.Module):
     """
-    obs_size: observation/state_np size of the environment
+    obs_size: obs/state_np size of the environment
     n_actions: number of discrete actions available in the environment
     # hidden_size: size of hidden layers
     """
@@ -40,7 +40,7 @@ class ActorNet(nn.Module):
 
 class CriticNet(nn.Module):
     """
-    obs_size: observation/state_np size of the environment
+    obs_size: obs/state_np size of the environment
     n_actions: number of discrete actions available in the environment
     # hidden_size: size of hidden layers
     """

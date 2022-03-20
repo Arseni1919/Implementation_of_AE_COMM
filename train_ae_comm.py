@@ -22,17 +22,18 @@ def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_r
         for i_step in range(game.max_episode):
             print(f'\r(step: {len(agents[0].h_rewards)})', end='')
             new_messages, actions = {}, {}
+            messages_list = from_dict_to_list(agents, messages)
 
             # DO THE STEP
             for agent in agents:
-                new_message, action = agent.forward(observations[agent.name], messages)
+                action, new_message = agent.forward(observations[agent.name], messages_list)
                 new_messages[agent.name] = new_message
                 actions[agent.name] = action
             new_observations, rewards, dones, infos = game.step(actions)
 
             # SAVE HISTORY
             for agent in agents:
-                agent.save_history(obs=observations[agent.name], prev_m=messages[agent.name],
+                agent.save_history(obs=observations[agent.name], prev_m=messages_list,
                                    action=actions[agent.name], reward=rewards[agent.name],
                                    done=dones[agent.name])
 
@@ -56,6 +57,13 @@ def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_r
         f'\r[SAMPLE {i_update + 1}] - episodes {n_episodes}, batch: {len(agents[0].h_rewards)}  average score: {average_score} {episode_scores}')
 
     return average_score
+
+
+def from_dict_to_list(curr_list, curr_dict):
+    return_list = []
+    for li in curr_list:
+        return_list.append(curr_dict[li.name])
+    return return_list
 
 
 def train(game, agents, plotter):
@@ -116,7 +124,8 @@ def sample_runs(game, agents, times=1, load_models=False, to_render=True):
 
             # EACH AGENT DO SOME CALCULATIONS DURING THE STEP
             for agent in agents:
-                new_message, action = agent.forward(observations[agent.name], messages)
+                messages = from_dict_to_list(agents, messages)
+                action, new_message = agent.forward(observations[agent.name], messages)
                 new_messages[agent.name] = new_message
                 actions[agent.name] = action
 
