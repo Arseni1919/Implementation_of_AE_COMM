@@ -64,7 +64,7 @@ def sample_runs(game, agents, plotter, episodes=1, load_models=False, to_render=
     return episode_scores
 
 
-def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_render=True):
+def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000):
     n_episodes = 0
     episode_scores = []
 
@@ -97,11 +97,9 @@ def train(game, agents, plotter):
     best_score = -100
     # --------------------------- # MAIN LOOP # -------------------------- #
     for i_update in range(N_UPDATES):
-        print(f'Update {i_update + 1}', end=' ')
 
         # SAMPLE TRAJECTORIES
-        average_score = sample_trajectories(game, agents, plotter, i_update,
-                                            batch_size=BATCH_SIZE, to_render=False)
+        average_score = sample_trajectories(game, agents, plotter, i_update, batch_size=BATCH_SIZE)
 
         # UPDATE NN
         # TODO
@@ -112,7 +110,7 @@ def train(game, agents, plotter):
         # TODO
         plotter.neptune_plot({
             # 'critic loss': loss_critic.item(),
-            # 'actor loss': loss_actor.item(),
+            # 'copied_nn loss': loss_actor.item(),
             # 'entropy in props': Categorical(probs).entropy().mean().item(),
             # 'obs. stats - mean': obs_stat.mean().mean(),
             # 'obs. stats - std': obs_stat.std().mean(),

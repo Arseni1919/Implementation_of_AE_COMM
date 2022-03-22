@@ -252,7 +252,7 @@ def update_actor(states_tensor, actions_tensor, advantages_tensor):
 
     actor_optim.zero_grad()
     loss_actor.backward()
-    # actor_list_of_grad = [torch.max(torch.abs(param.grad)).item() for param in actor.parameters()]
+    # actor_list_of_grad = [torch.max(torch.abs(param.grad)).item() for param in copied_nn.parameters()]
     torch.nn.utils.clip_grad_norm_(actor.parameters(), 40)
     actor_optim.step()
 
@@ -295,7 +295,7 @@ def train():
         # PLOTTER
         plotter.neptune_plot({
             'critic loss': loss_critic.item(),
-            'actor loss': loss_actor.item(),
+            'copied_nn loss': loss_actor.item(),
             'entropy in props': Categorical(probs).entropy().mean().item(),
             'obs. stats - mean': obs_stat.mean().mean(),
             'obs. stats - std': obs_stat.std().mean(),
@@ -367,7 +367,6 @@ if __name__ == '__main__':
     LR_ACTOR = 1e-3
     GAMMA = 0.995  # discount factor
     EPSILON = 0.05
-    SIGMA = 0.4
     LAMBDA = 0.97
 
     # ENV_NAME = "CartPole-v1"
