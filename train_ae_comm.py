@@ -7,12 +7,16 @@ from neptune_plotter import NeptunePlotter
 from wrappers_and_state_stats import MARunningStateStat, MAEnvTensorWrapper
 
 
-def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_render=True):
-    n_episodes = 0
+def sample_runs(game, agents, plotter, episodes=1, load_models=False, to_render=True, to_neptune=False, history=False):
+    # LOAD MODELS
+    if load_models:
+        for agent in agents:
+            agent.load_models(env_name=game.name)
+
     episode_scores = []
 
-    # BATCH
-    while not len(agents[0].h_rewards) > batch_size:
+    # EPISODE - FULL GAME
+    for i_episode in range(episodes):
         observations = game.reset()
         episode_score = 0
         # initial messages
@@ -20,7 +24,6 @@ def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_r
 
         # STEP - ONE STEP INSIDE A GAME
         for i_step in range(game.max_episode):
-            print(f'\r(step: {len(agents[0].h_rewards)})', end='')
             new_messages, actions = {}, {}
             messages_list = from_dict_to_list(agents, messages)
 
@@ -32,24 +35,47 @@ def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_r
             new_observations, rewards, dones, infos = game.step(actions)
 
             # SAVE HISTORY
-            for agent in agents:
-                agent.save_history(obs=observations[agent.name], prev_m=messages_list,
-                                   action=actions[agent.name], reward=rewards[agent.name],
-                                   done=dones[agent.name])
+            if history:
+                for agent in agents:
+                    agent.save_history(obs=observations[agent.name], prev_m=messages_list,
+                                       action=actions[agent.name], reward=rewards[agent.name],
+                                       done=dones[agent.name])
 
             # update variables
             observations = new_observations
             messages = {agent.name: new_messages[agent.name].detach() for agent in agents}
             episode_score += torch.sum(torch.tensor(list(rewards.values()))).item()
 
-            # rendering
+            # after finishing the step
             if to_render:
                 game.render()
+                print(f'\r[RUN ({i_episode + 1}/{episodes})] - step: {i_step}/{game.max_episode}, episode_score: {episode_score}',
+                      end='')
+            else:
+                print(f'\r(step: {len(agents[0].h_rewards)})', end='')
 
         # after finishing the episode
         episode_scores.append(episode_score)
+        if to_neptune:
+            plotter.neptune_plot({"episode_score": episode_score})
+        if to_render:
+            print()
+
+    return episode_scores
+
+
+def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_render=True):
+    n_episodes = 0
+    episode_scores = []
+
+    # BATCH
+    while not len(agents[0].h_rewards) > batch_size:
+        curr_episode_scores = sample_runs(
+            game, agents, plotter, episodes=1, load_models=False, to_render=False, to_neptune=False, history=True
+        )
+        # after finishing the episode
+        episode_scores.append(curr_episode_scores[0])
         n_episodes += 1
-        plotter.neptune_plot({"episode_score": episode_score})
 
     # after finishing the batch
     average_score = np.mean(episode_scores)
@@ -95,7 +121,7 @@ def train(game, agents, plotter):
         # RENDER
         # if i_update > N_UPDATES - 5:
         if i_update % 10 == 0:
-            sample_runs(game, agents, times=1)
+            sample_runs(game, agents, plotter, episodes=1)
 
         # SAVE
         if average_score > best_score:
@@ -105,44 +131,6 @@ def train(game, agents, plotter):
 
     # FINISH TRAINING
     print('Finished train.')
-
-
-def sample_runs(game, agents, times=1, load_models=False, to_render=True):
-    if load_models:
-        for agent in agents:
-            agent.load_models(env_name=game.name)
-    # EPISODE - FULL GAME
-    for i_episode in range(times):
-        observations = game.reset()
-        episode_score = 0
-        # initial messages
-        messages = {agent.name: torch.zeros(1, 10) for agent in agents}
-
-        # STEP - ONE STEP INSIDE A GAME
-        for i_step in range(game.max_episode):
-            new_messages, actions = {}, {}
-
-            # EACH AGENT DO SOME CALCULATIONS DURING THE STEP
-            for agent in agents:
-                messages = from_dict_to_list(agents, messages)
-                action, new_message = agent.forward(observations[agent.name], messages)
-                new_messages[agent.name] = new_message
-                actions[agent.name] = action
-
-            # execute actions
-            new_observations, rewards, dones, infos = game.step(actions)
-
-            # update variables
-            observations = new_observations
-            messages = {agent.name: new_messages[agent.name].detach() for agent in agents}
-            episode_score += torch.sum(torch.tensor(list(rewards.values()))).item()
-
-            # rendering + neptune + print
-            if to_render:
-                game.render()
-            print(
-                f'\r[RUN ({i_episode + 1}/{times})] - step: {i_step}/{game.max_episode}, episode_score: {episode_score}', end='')
-        print()
 
 
 def main():
@@ -164,7 +152,7 @@ def main():
     train(game=game, agents=agents_list, plotter=plotter)
 
     # EXAMPLE RUNS
-    sample_runs(game=game, agents=agents_list, times=2, load_models=True)
+    sample_runs(game=game, agents=agents_list, plotter=plotter, episodes=2, load_models=True)
 
     # FINISH
     plotter.close()
@@ -184,7 +172,7 @@ if __name__ == '__main__':
     LR = 0.0001
     # NEPTUNE = True
     NEPTUNE = False
-    # SAVE_RESULTS = True
-    SAVE_RESULTS = False
+    SAVE_RESULTS = True
+    # SAVE_RESULTS = False
 
     main()

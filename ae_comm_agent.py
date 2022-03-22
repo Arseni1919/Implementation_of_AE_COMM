@@ -56,12 +56,12 @@ class Agent:
     def save_models(self, env_name, save_results=False):
         if save_results:
             print(f"Saving models of {self.name}...")
-            path_to_save = f'saved_model/{env_name}_{self.name}.pt'
+            path_to_save = f'saved_model/{env_name}_{self.name}_model.pt'
             torch.save(self.nn, path_to_save)
             print(f"Finished saving the models of {self.name}.")
 
     def load_models(self, env_name):
-        path_to_load = f'saved_model/{env_name}_{self.name}.pt'
+        path_to_load = f'saved_model/{env_name}_{self.name}_model.pt'
         self.nn = torch.load(path_to_load)
 
 

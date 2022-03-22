@@ -68,14 +68,15 @@ class AgentNet(nn.Module):
         output_ae_decoder = self.ae_decoder(output_ae_encoder)
 
         # MessageEncoder
-        input_cat = [self.me_embedding(item) for item in messages]
-        input_me = torch.cat(input_cat, 1)
+        input_me_cat = [torch.squeeze(self.me_embedding(item)) for item in messages]
+        input_me = torch.cat(input_me_cat, 0)
         output_me = self.message_encoder(input_me.float())
         # output_me = torch.squeeze(output_me)
 
         # PolicyNetwork
-        output_ie = torch.unsqueeze(output_ie, 0)
-        input_pn = torch.unsqueeze(torch.cat((output_ie, output_me), 1), 0)
+        # output_ie = torch.unsqueeze(output_ie, 0)
+        input_pn = torch.unsqueeze(torch.cat((output_ie, output_me), 0), 0)
+        input_pn = torch.unsqueeze(input_pn, 0)
         output_pn_gru, self.pn_hidden = self.pn_gru(input_pn, self.pn_hidden)
         output_pn_action_logits = self.pn_linear_1(self.pn_relu(output_pn_gru))
         action_probs = self.pn_softmax(output_pn_action_logits)
