@@ -174,3 +174,10 @@ if __name__ == '__main__':
     # SAVE_RESULTS = False
 
     main()
+
+    """
+    Questions: 
+    - how you do embedding of the messages?
+    - does each agent receives all the messages  including its own message?
+    - 
+    """

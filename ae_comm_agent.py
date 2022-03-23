@@ -43,7 +43,8 @@ class Agent:
 
     def _history_to_tensors(self):
         self.h_obs = torch.cat(self.h_obs, 0)
-        self.h_prev_messages = torch.tensor(self.h_prev_messages)
+        self.h_obs = torch.unsqueeze(self.h_obs, 1)
+        # self.h_prev_messages = torch.tensor(self.h_prev_messages)
         self.h_rewards = torch.tensor(self.h_rewards)
 
     def _compute_returns_and_advantages(self):
