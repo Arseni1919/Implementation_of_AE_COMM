@@ -9,6 +9,8 @@ class Agent:
     def __init__(self, agent_name, n_agents, n_actions,
                  gamma_par=0.995, lambda_par=0.97, lr_critic_par=1e-3, lr_actor_par=1e-3, epsilon_par=0.05):
         self.name = agent_name
+        self.n_agents = n_agents
+        self.n_actions = n_actions
         self.gamma_par = gamma_par
         self.lambda_par = lambda_par
         self.lr_critic_par = lr_critic_par
@@ -23,20 +25,29 @@ class Agent:
         self.actor_optim = torch.optim.Adam(self.nn.parameters(), lr=self.lr_actor_par)
 
         # HISTORY
-        self.h_obs = []
-        self.h_prev_messages = []
-        self.h_actions = []
-        self.h_rewards = []
-        self.h_dones = []
+        self.h_obs = None
+        self.h_prev_messages = None
+        self.h_actions = None
+        self.h_rewards = None
+        self.h_dones = None
+        self._init_history()
+
+    def _get_nn(self, obs, messages, old=False):
+        if not old:
+            action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self.nn(obs, messages)
+        else:
+            action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self.nn_old(obs, messages)
+        return action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func
 
     def forward(self, obs, messages):
         obs = torch.unsqueeze(obs, 0)
-        action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self.nn(obs, messages)
+        action, new_message, _, _, _, _ = self._get_nn(obs, messages)
         return action, new_message
 
     def save_history(self, obs, prev_m, action, reward, done):
         self.h_obs.append(obs)
-        self.h_prev_messages.append(prev_m)
+        for i_agent in range(self.n_agents):
+            self.h_prev_messages[i_agent].append(prev_m[i_agent])
         self.h_actions.append(action)
         self.h_rewards.append(reward)
         self.h_dones.append(done)
@@ -44,13 +55,19 @@ class Agent:
     def _history_to_tensors(self):
         self.h_obs = torch.cat(self.h_obs, 0)
         self.h_obs = torch.unsqueeze(self.h_obs, 1)
-        # self.h_prev_messages = torch.tensor(self.h_prev_messages)
         self.h_rewards = torch.tensor(self.h_rewards)
+        self.h_actions = torch.cat(self.h_actions, 0)
+        # messages
+        prev_messages = []
+        for prev_m in self.h_prev_messages:
+            prev_message_cat = torch.cat(prev_m, 0)
+            prev_messages.append(prev_message_cat)
+        self.h_prev_messages = prev_messages
 
     def _compute_returns_and_advantages(self):
 
         with torch.no_grad():
-            action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self.nn(
+            action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self._get_nn(
                 self.h_obs, self.h_prev_messages
             )
             critic_values_tensor = output_value_func.detach().squeeze()
@@ -62,7 +79,7 @@ class Agent:
 
         prev_return, prev_value, prev_advantage = 0, 0, 0
         for i in reversed(range(self.h_rewards.shape[0])):
-            final_state_bool = 1 - self.h_dones[i]
+            final_state_bool = ~ self.h_dones[i]
 
             returns[i] = self.h_rewards[i] + self.gamma_par * prev_return * final_state_bool
             prev_return = returns[i]
@@ -80,26 +97,26 @@ class Agent:
         return returns_tensor, advantages_tensor
 
     def _update_critic(self, returns_tensor):
-        action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self.nn(
+        action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self._get_nn(
             self.h_obs, self.h_prev_messages
         )
 
         critic_values_tensor = output_value_func.squeeze()
         loss_critic = nn.MSELoss()(critic_values_tensor, returns_tensor)
         self.critic_optim.zero_grad()
-        loss_critic.backward()
+        loss_critic.backward(retain_graph=True)
         self.critic_optim.step()
         return loss_critic
 
     def _update_actor(self, advantages_tensor):
         # UPDATE ACTOR
-        action, new_message, output_ie, output_ae_decoder, action_probs_old, output_value_func = self.nn_old(
-            self.h_obs, self.h_prev_messages
+        action, new_message, output_ie, output_ae_decoder, action_probs_old, output_value_func = self._get_nn(
+            self.h_obs, self.h_prev_messages, old=True
         )
         categorical_distribution_old = Categorical(action_probs_old)
         action_log_probs_old = categorical_distribution_old.log_prob(self.h_actions).detach()
 
-        action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self.nn(
+        action, new_message, output_ie, output_ae_decoder, action_probs, output_value_func = self._get_nn(
             self.h_obs, self.h_prev_messages
         )
         categorical_distribution = Categorical(action_probs)
@@ -126,20 +143,23 @@ class Agent:
 
         return action_probs, loss_actor
 
-    def _remove_history(self):
+    def _init_history(self):
         # HISTORY
         self.h_obs = []
         self.h_prev_messages = []
+        for _ in range(self.n_agents):
+            self.h_prev_messages.append([])
         self.h_actions = []
         self.h_rewards = []
         self.h_dones = []
 
     def update_nn(self):
         self._history_to_tensors()
-        returns_tensor, advantages_tensor = self._compute_returns_and_advantages()
+        returns_tensor, _ = self._compute_returns_and_advantages()
         loss_critic = self._update_critic(returns_tensor)
+        _, advantages_tensor = self._compute_returns_and_advantages()
         probs, loss_actor = self._update_actor(advantages_tensor)
-        self._remove_history()
+        self._init_history()
         return loss_critic, loss_actor
 
     def save_models(self, env_name, save_results=False):

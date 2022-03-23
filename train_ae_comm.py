@@ -64,14 +64,14 @@ def sample_runs(game, agents, plotter, episodes=1, load_models=False, to_render=
     return episode_scores
 
 
-def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000):
+def sample_trajectories(game, agents, plotter, i_update=0, batch_size=1000, to_neptune=False):
     n_episodes = 0
     episode_scores = []
 
     # BATCH
     while not len(agents[0].h_rewards) > batch_size:
         curr_episode_scores = sample_runs(
-            game, agents, plotter, episodes=1, load_models=False, to_render=False, to_neptune=False, history=True
+            game, agents, plotter, episodes=1, load_models=False, to_render=False, to_neptune=to_neptune, history=True
         )
         # after finishing the episode
         episode_scores.append(curr_episode_scores[0])
@@ -92,29 +92,29 @@ def from_dict_to_list(curr_list, curr_dict):
     return return_list
 
 
-def train(game, agents, plotter):
+def train(game, agents, plotter, to_neptune=False):
     print('Training...')
     best_score = -100
     # --------------------------- # MAIN LOOP # -------------------------- #
     for i_update in range(N_UPDATES):
 
         # SAMPLE TRAJECTORIES
-        average_score = sample_trajectories(game, agents, plotter, i_update, batch_size=BATCH_SIZE)
-
+        average_score = sample_trajectories(game, agents, plotter, i_update, batch_size=BATCH_SIZE, to_neptune=to_neptune)
+        loss_critic, loss_actor = 0, 0
         # UPDATE NN
-        # TODO
         for agent in agents:
-            agent.update_nn()
+            loss_critic, loss_actor = agent.update_nn()
 
         # PLOTTER
-        # TODO
-        plotter.neptune_plot({
-            # 'critic loss': loss_critic.item(),
-            # 'copied_nn loss': loss_actor.item(),
-            # 'entropy in props': Categorical(probs).entropy().mean().item(),
-            # 'obs. stats - mean': obs_stat.mean().mean(),
-            # 'obs. stats - std': obs_stat.std().mean(),
-        })
+        if to_neptune:
+            plotter.neptune_plot({
+                'critic loss': loss_critic.item(),
+                'actor loss': loss_actor.item(),
+                # 'copied_nn loss': loss_actor.item(),
+                # 'entropy in props': Categorical(probs).entropy().mean().item(),
+                # 'obs. stats - mean': obs_stat.mean().mean(),
+                # 'obs. stats - std': obs_stat.std().mean(),
+            })
 
         # RENDER
         # if i_update > N_UPDATES - 5:
@@ -133,7 +133,8 @@ def train(game, agents, plotter):
 
 def main():
     # VARIABLES
-    game = FinalGoal(n_agents=N_AGENTS, field_side=FIELD_SIZE, max_episode=MAX_EPISODE_LENGTH)
+    game = FinalGoal(n_agents=N_AGENTS, field_side=FIELD_SIZE, max_episode=MAX_EPISODE_LENGTH,
+                     n_obstacle_tiles=N_OBSTACLE_TILES)
     # --------------------------- # WRAPPERS & OBS STATS # -------------------------- #
     game = MAEnvTensorWrapper(game=game)
     obs_stat = MARunningStateStat(game.reset())
@@ -147,7 +148,7 @@ def main():
     plotter = NeptunePlotter(plot_neptune=NEPTUNE, tags=['ae_comm', 'ppo', f'{game.name}'], name='ae_comm_sample')
 
     # TRAINING
-    train(game=game, agents=agents_list, plotter=plotter)
+    train(game=game, agents=agents_list, plotter=plotter, to_neptune=NEPTUNE)
 
     # EXAMPLE RUNS
     sample_runs(game=game, agents=agents_list, plotter=plotter, episodes=2, load_models=True)
@@ -160,24 +161,28 @@ def main():
 if __name__ == '__main__':
     # HYPER-PARAMETERS
     # N_AGENTS = 1
-    BATCH_SIZE = 1000
-    N_AGENTS = 3  # !!!
-    FIELD_SIZE = 15  # !!!
-    # FIELD_SIZE = 25
-    EPISODES = 100
-    MAX_EPISODE_LENGTH = 50
-    N_UPDATES = 100
+    BATCH_SIZE = 1000  # !!!
+    # BATCH_SIZE = 200
+    N_AGENTS = 1  # !!!
+    # FIELD_SIZE = 15  # !!!
+    FIELD_SIZE = 7
+    # N_OBSTACLE_TILES = 25  # !!!
+    N_OBSTACLE_TILES = 5
+    # MAX_EPISODE_LENGTH = 512 # !!!
+    MAX_EPISODE_LENGTH = 20
+    N_UPDATES = 500
     LR = 0.0001
-    # NEPTUNE = True
-    NEPTUNE = False
+    NEPTUNE = True
+    # NEPTUNE = False
     SAVE_RESULTS = True
     # SAVE_RESULTS = False
 
     main()
 
     """
-    Questions: 
+    Questions To Authors: 
     - how you do embedding of the messages?
     - does each agent receives all the messages  including its own message?
-    - 
+    - do you use some term of entropy in loss function?
+    - what is the full loss function?
     """

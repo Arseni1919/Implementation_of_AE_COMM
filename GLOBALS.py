@@ -18,3 +18,5 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.data import random_split
 from torchvision import transforms
 
+# torch.autograd.set_detect_anomaly(True)
+
