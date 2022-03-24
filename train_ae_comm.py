@@ -7,7 +7,7 @@ from neptune_plotter import NeptunePlotter
 from wrappers_and_state_stats import MARunningStateStat, MAEnvTensorWrapper
 
 
-def sample_runs(game, agents, plotter, episodes=1, load_models=False, to_render=True, to_neptune=False, history=False):
+def sample_runs(game, agents, plotter, episodes=1, load_models=False, to_render=True, history=False):
     # LOAD MODELS
     if load_models:
         for agent in agents:
@@ -56,8 +56,10 @@ def sample_runs(game, agents, plotter, episodes=1, load_models=False, to_render=
 
         # after finishing the episode
         episode_scores.append(episode_score)
-        if to_neptune:
-            plotter.neptune_plot({"episode_score": episode_score})
+
+        # neptune
+        plotter.neptune_plot({"episode_score": episode_score})
+
         if to_render:
             print()
 
@@ -92,29 +94,28 @@ def from_dict_to_list(curr_list, curr_dict):
     return return_list
 
 
-def train(game, agents, plotter, to_neptune=False):
+def train(game, agents, plotter, batch_size=1000, save_results=False):
     print('Training...')
     best_score = -100
     # --------------------------- # MAIN LOOP # -------------------------- #
     for i_update in range(N_UPDATES):
 
         # SAMPLE TRAJECTORIES
-        average_score = sample_trajectories(game, agents, plotter, i_update, batch_size=BATCH_SIZE, to_neptune=to_neptune)
+        average_score = sample_trajectories(game, agents, plotter, i_update, batch_size=batch_size)
         loss_critic, loss_actor = 0, 0
         # UPDATE NN
         for agent in agents:
             loss_critic, loss_actor = agent.update_nn()
 
         # PLOTTER
-        if to_neptune:
-            plotter.neptune_plot({
-                'critic loss': loss_critic.item(),
-                'actor loss': loss_actor.item(),
-                # 'copied_nn loss': loss_actor.item(),
-                # 'entropy in props': Categorical(probs).entropy().mean().item(),
-                # 'obs. stats - mean': obs_stat.mean().mean(),
-                # 'obs. stats - std': obs_stat.std().mean(),
-            })
+        plotter.neptune_plot({
+            'critic loss': loss_critic.item(),
+            'actor loss': loss_actor.item(),
+            # 'copied_nn loss': loss_actor.item(),
+            # 'entropy in props': Categorical(probs).entropy().mean().item(),
+            # 'obs. stats - mean': obs_stat.mean().mean(),
+            # 'obs. stats - std': obs_stat.std().mean(),
+        })
 
         # RENDER
         # if i_update > N_UPDATES - 5:
@@ -125,7 +126,7 @@ def train(game, agents, plotter, to_neptune=False):
         if average_score > best_score:
             best_score = average_score
             for agent in agents:
-                agent.save_models(env_name=game.name, save_results=SAVE_RESULTS)
+                agent.save_models(env_name=game.name, save_results=save_results)
 
     # FINISH TRAINING
     print('Finished train.')
@@ -148,7 +149,7 @@ def main():
     plotter = NeptunePlotter(plot_neptune=NEPTUNE, tags=['ae_comm', 'ppo', f'{game.name}'], name='ae_comm_sample')
 
     # TRAINING
-    train(game=game, agents=agents_list, plotter=plotter, to_neptune=NEPTUNE)
+    train(game=game, agents=agents_list, plotter=plotter, batch_size=BATCH_SIZE, save_results=SAVE_RESULTS)
 
     # EXAMPLE RUNS
     sample_runs(game=game, agents=agents_list, plotter=plotter, episodes=2, load_models=True)
@@ -183,6 +184,9 @@ if __name__ == '__main__':
     Questions To Authors: 
     - how you do embedding of the messages?
     - does each agent receives all the messages  including its own message?
+    - how agents understand the relative positions of others? 
     - do you use some term of entropy in loss function?
     - what is the full loss function?
+    - image encoder output size is different. which one is correct?
+    - what is the simplest possible example that the policy can learn in?
     """
